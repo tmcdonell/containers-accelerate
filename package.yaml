@@ -1,0 +1,39 @@
+name:                containers-accelerate
+version:             0.1.0.0
+github:              "tmcdonell/containers-accelerate"
+license:             BSD3
+author:              "Trevor L. McDonell"
+maintainer:          "trevor.mcdonell@gmail.com"
+copyright:           "Trevor L. McDonell &lt;trevor.mcdonell@gmail.com&gt;"
+
+extra-source-files:
+- README.md
+- CHANGELOG.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/tmcdonell/containers-accelerate#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- accelerate
+
+library:
+  source-dirs: src
+
+tests:
+  containers-accelerate-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - containers-accelerate
+
