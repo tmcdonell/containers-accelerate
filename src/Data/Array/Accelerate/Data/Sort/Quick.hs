@@ -12,8 +12,12 @@
 -- Portability : non-portable (GHC extensions)
 --
 
-module Data.Array.Accelerate.Data.Sort.Quick (quicksort)
-  where
+module Data.Array.Accelerate.Data.Sort.Quick (
+
+  quicksort,
+  quicksortBy,
+
+) where
 
 import Data.Array.Accelerate
 import Data.Array.Accelerate.Unsafe

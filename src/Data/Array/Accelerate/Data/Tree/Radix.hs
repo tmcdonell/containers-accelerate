@@ -35,6 +35,7 @@ data Node = Node !Ptr   -- left pointer
 
 pattern Node_ :: Exp Ptr -> Exp Ptr -> Exp Int -> Exp Node
 pattern Node_ l r p = Pattern (l, r, p)
+{-# COMPLETE Node_ #-}
 
 -- If the MSB is set, then this is a leaf pointer. This is fine because who
 -- uses signed integers for array indices anyway?? ¯\_(ツ)_/¯
@@ -51,6 +52,7 @@ instance Show Ptr where
 
 pattern Ptr_ :: Exp Int -> Exp Ptr
 pattern Ptr_ x = Pattern x
+{-# COMPLETE Ptr_ #-}
 
 type Key = Int
 

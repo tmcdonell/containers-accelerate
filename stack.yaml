@@ -11,7 +11,10 @@ packages:
 
 extra-deps:
 - github: tmcdonell/accelerate
-  commit: 0b5d81dd62bc6b6004f9a60df92a7485fe5aac45
+  commit: bff50f34688c6a0ef0bf63b01a9a4fe0890bbd9a
+
+- github: tmcdonell/hashable-accelerate
+  commit: 0b4e0893af766722836333776b9415e8e6e7941a
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
