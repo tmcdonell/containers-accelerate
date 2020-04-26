@@ -87,7 +87,7 @@ lookup :: (Eq k, Hashable k, Elt v) => Exp k -> Acc (HashMap k v) -> Exp (Maybe 
 lookup k hm = snd `fmap` lookupWithIndex k hm
 
 lookupWithIndex :: (Eq k, Hashable k, Elt v) => Exp k -> Acc (HashMap k v) -> Exp (Maybe (Int, v))
-lookupWithIndex key (HashMap_ kb tree kv) = result
+lookupWithIndex key (HashMap_ msb tree kv) = result
   where
     h                 = hash key
     bits              = finiteBitSize (undef @Key)
@@ -95,7 +95,7 @@ lookupWithIndex key (HashMap_ kb tree kv) = result
     isLeaf (Ptr_ x)   = testBit  x (bits - 1)
 
     Node_ l0 r0 _     = tree !! 0
-    b0                = the kb
+    b0                = the msb
     step (T4 b l r a) =
       let p = testBit h (bits - b) ? (r, l)
           i = index p
@@ -142,15 +142,15 @@ elems (HashMap_ _ _ kv) = A.map snd kv
 -- | /O(n log n)/ Construct a map from the supplied (key,value) pairs
 --
 fromVector :: (Hashable k, Elt v) => Acc (Vector (k,v)) -> Acc (HashMap k v)
-fromVector assocs = HashMap_ b t kv
+fromVector assocs = HashMap_ msb tree kv
   where
     (h, kv) = unzip
             . quicksortBy (compare `on` fst)
             $ A.map (\(T2 k v) -> T2 (hash k) (T2 k v)) assocs
 
-    t             = binary_radix_tree h
-    Node_ l0 _ _  = t !! 0
-    b             = unit $ countLeadingZeros (h !! index l0)
+    tree          = binary_radix_tree h
+    Node_ l0 _ _  = tree !! 0
+    msb           = unit $ countLeadingZeros (h !! index l0)
 
     bits            = finiteBitSize (undef @Key)
     index  (Ptr_ x) = clearBit x (bits - 1)
