@@ -15,7 +15,7 @@
 
 module Data.Array.Accelerate.Data.HashMap (
 
-  HashMap,
+  HashMap, Hashable,
 
   -- * Basic interface
   size,
@@ -97,13 +97,13 @@ lookupWithIndex key (HashMap_ msb tree kv) = result
     Node_ l0 r0 _     = tree !! 0
     b0                = the msb
     step (T4 b l r a) =
-      let p = testBit h (bits - b) ? (r, l)
+      let p = testBit h b ? (r, l)
           i = index p
        in if isLeaf p
              then let T2 k v = kv !! i
-                   in T4 (bits+1) undef undef (k == key ? (Just_ (T2 i v), Nothing_))
+                   in T4 (-1) undef undef (k == key ? (Just_ (T2 i v), Nothing_))
              else let Node_ l' r' _ = tree !! i
-                   in T4 (b+1) l' r' a
+                   in T4 (b-1) l' r' a
 
     -- If the map contains fewer than two elements, the radix tree will be
     -- empty. Otherwise, we recurse based on the next differing bit of the
@@ -112,7 +112,7 @@ lookupWithIndex key (HashMap_ msb tree kv) = result
     result  = length kv == 0 ? ( Nothing_
             , length kv == 1 ? ( let T2 k v = kv !! 0
                                   in k == key ? (Just_ (T2 0 v), Nothing_)
-            , {- otherwise -}  ( let T4 _ _ _ mv = while (\(T4 b _ _ _) -> b <= bits)
+            , {- otherwise -}  ( let T4 _ _ _ mv = while (\(T4 b _ _ _) -> b > 0)
                                                          step
                                                          (T4 b0 l0 r0 Nothing_)
                                   in mv)))
@@ -142,7 +142,10 @@ elems (HashMap_ _ _ kv) = A.map snd kv
 -- | /O(n log n)/ Construct a map from the supplied (key,value) pairs
 --
 fromVector :: (Hashable k, Elt v) => Acc (Vector (k,v)) -> Acc (HashMap k v)
-fromVector assocs = HashMap_ msb tree kv
+fromVector assocs =
+  if length assocs < 2
+     then HashMap_ (unit (-1)) (fill (I1 0) undef) assocs
+     else HashMap_ msb tree kv
   where
     (h, kv) = unzip
             . quicksortBy (compare `on` fst)
@@ -150,7 +153,7 @@ fromVector assocs = HashMap_ msb tree kv
 
     tree          = binary_radix_tree h
     Node_ l0 _ _  = tree !! 0
-    msb           = unit $ countLeadingZeros (h !! index l0)
+    msb           = generate Z_ (\_ -> bits - countLeadingZeros (h !! index l0))
 
     bits            = finiteBitSize (undef @Key)
     index  (Ptr_ x) = clearBit x (bits - 1)
