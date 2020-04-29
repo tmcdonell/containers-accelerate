@@ -28,13 +28,14 @@ import qualified Data.Bits as P
 import qualified Prelude   as P
 
 
-data Node = Node !Ptr   -- left pointer
+data Node = Node !Word8 -- descriminator bit
+                 !Ptr   -- left pointer
                  !Ptr   -- right pointer
-                 !Int   -- parent pointer
+                 !Int   -- parent node index
   deriving (Show, Generic, Elt, IsProduct Elt)
 
-pattern Node_ :: Exp Ptr -> Exp Ptr -> Exp Int -> Exp Node
-pattern Node_ l r p = Pattern (l, r, p)
+pattern Node_ :: Exp Word8 -> Exp Ptr -> Exp Ptr -> Exp Int -> Exp Node
+pattern Node_ b l r p = Pattern (b, l, r, p)
 {-# COMPLETE Node_ #-}
 
 -- If the MSB is set, then this is a leaf pointer. This is fine because who
@@ -54,15 +55,16 @@ pattern Ptr_ :: Exp Int -> Exp Ptr
 pattern Ptr_ x = Pattern x
 {-# COMPLETE Ptr_ #-}
 
-type Key = Int
+type Key = Word
 
 -- Construct the binary radix tree from the vector of keys. The keys must
 -- be sorted.
 --
 binary_radix_tree :: Acc (Vector Key) -> Acc (Vector Node)
-binary_radix_tree keys = zipWith3 Node_ lefts rights parents
+binary_radix_tree keys = zipWith4 Node_ deltas lefts rights parents
   where
-    n = length keys
+    n    = length keys
+    bits = finiteBitSize (undef @Key)
 
     delta i j =
       if j >= 0 && j < n
@@ -72,8 +74,8 @@ binary_radix_tree keys = zipWith3 Node_ lefts rights parents
               -- handle duplicates using the index as a tiebreaker if
               -- necessary
            in if li == lj
-                 then 32 + countLeadingZeros (i  `xor` j)
-                 else      countLeadingZeros (li `xor` lj)
+                 then bits + countLeadingZeros (i  `xor` j)
+                 else        countLeadingZeros (li `xor` lj)
          else -1
 
     node i =
@@ -119,20 +121,25 @@ binary_radix_tree keys = zipWith3 Node_ lefts rights parents
                then T2 (leaf  (gamma+1)) (-1)
                else T2 (inner (gamma+1)) (gamma+1)
 
-          leaf  x = Ptr_ (setBit x (finiteBitSize (undef @Key) - 1))
+          leaf  x = Ptr_ (setBit x (bits-1))
           inner x = Ptr_ x
       in
-      T4 left right
-         (T2 left_parent  i)
-         (T2 right_parent i)
+      T5 (fromIntegral delta_node :: Exp Word8)
+         left
+         right
+         left_parent
+         right_parent
 
-    (lefts, rights, parents_a, parents_b) = unzip4 $ generate (I1 (n-1)) (node . unindex1)
+    (deltas, lefts, rights, left_parents, right_parents)
+      = unzip5
+      $ generate (I1 (n-1)) (node . unindex1)
 
-    parents = let vals = map snd parents_a ++ map snd parents_b
-                  dest = map fst parents_a ++ map fst parents_b
-               in permute const
-                    (fill (I1 (n-1)) undef)
-                    (\ix -> let d = dest ! ix in
-                             if d < 0 then ignore else I1 d)
-                    vals
+    parents
+      = let from = generate (I1 ((n-1)*2)) (\(I1 i) -> i < n-1 ? (i, i-n+1))
+            dest = left_parents ++ right_parents
+         in permute const
+              (fill (I1 (n-1)) undef)
+              (\ix -> let d = dest ! ix in
+                       if d < 0 then ignore else I1 d)
+              from
 

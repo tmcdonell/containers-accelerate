@@ -41,7 +41,7 @@ test_hashmap runN =
 
 
 _MAX_SIZE :: Int
-_MAX_SIZE = 2 P.^ (14::Int)
+_MAX_SIZE = 2 P.^ (13::Int)
 
 test_lookup
     :: (P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
