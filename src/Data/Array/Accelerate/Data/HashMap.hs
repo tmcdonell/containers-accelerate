@@ -25,6 +25,7 @@ module Data.Array.Accelerate.Data.HashMap (
   member,
   lookup,
   insert, insertWith, insertWithKey,
+  delete,
   adjust, adjustWithKey,
 
   -- * Transformations
@@ -200,6 +201,36 @@ insertWithKey f kv hm =
    fromVector (kv1 ++ kv2 ++ kv3)
 
 
+-- | Delete a key and its value from the map. When the key is not a member
+-- of the map, that key is ignored
+--
+delete :: (Eq k, Hashable k, Elt v)
+       => Acc (Vector k)
+       -> Acc (HashMap k v)
+       -> Acc (HashMap k v)
+delete ks hm =
+  let
+      -- determine indices of the association array which need to be removed
+      T2 is sz = justs
+               $ A.map (\k -> let mu = lookupWithIndex k hm
+                               in if isJust mu
+                                     then let T2 i _ = fromJust mu
+                                           in Just_ i
+                                     else Nothing_) ks
+
+      -- the (key,value) pairs are still in sorted order after knocking out
+      -- the deleted elements, so we can recreate the tree directly
+      T2 kv' _ = justs
+               . scatter is (A.map Just_ (assocs hm))
+               $ fill (shape is) Nothing_
+      h'       = A.map (bitcast . hash . fst) kv'
+      tree'    = binary_radix_tree h'
+   in
+   if the sz == 0
+      then hm
+      else HashMap_ tree' kv'
+
+
 -- | Update a value at a specific key using the provided function. When the
 -- key is not a member of the map, that key is ignored.
 --
@@ -221,15 +252,17 @@ adjustWithKey
     -> Acc (HashMap k v)
 adjustWithKey f ks hm@(HashMap_ tree kvs) =
   let
-      (is, new) = unzip . afst
-                . justs
+      (is, new) = unzip iv
+      T2 iv sz  = justs
                 $ A.map (\k -> let mv = lookupWithIndex k hm
                                 in if isJust mv
                                       then let T2 i v = fromJust mv
                                             in Just_ (T2 i (T2 k (f k v)))
                                       else Nothing_) ks
    in
-   HashMap_ tree (scatter is kvs new)
+   if the sz == 0
+      then hm
+      else HashMap_ tree (scatter is kvs new)
 
 
 -- | /O(n)/ Transform the map by applying a function to every value
