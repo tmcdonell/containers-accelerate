@@ -96,11 +96,14 @@ lookupWithIndex key (HashMap_ tree kv) = result
     index  (Ptr_ x)   = clearBit x (bits - 1)
     isLeaf (Ptr_ x)   = testBit  x (bits - 1)
 
-    result
-      = length kv == 0 ? ( Nothing_               -- empty map!
-      , length kv == 1 ? ( let T2 k v = kv !! 0   -- the tree structure is empty
-                            in k == key ? (Just_ (T2 0 v), Nothing_)
-      , {- otherwise -}    snd $ while (\(T2 i _) -> i < n) search (T2 0 Nothing_) ))
+    result =
+      if length kv < 2
+         then if length kv == 0
+                 then Nothing_                -- empty map!
+                 else let T2 k v = kv !! 0    -- the tree structure is empty
+                       in k == key ? (Just_ (T2 0 v), Nothing_)
+         else
+           snd $ while (\(T2 i _) -> i < n) search (T2 0 Nothing_)
 
     search (T2 i _) =
       let Node_ d l r p = tree !! i
