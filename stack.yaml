@@ -13,6 +13,12 @@ extra-deps:
 - github: tmcdonell/accelerate
   commit: bff50f34688c6a0ef0bf63b01a9a4fe0890bbd9a
 
+- github: tmcdonell/accelerate-llvm
+  commit: a5c4e5a424414c141e66229bc3c91113f9e699af
+  subdirs:
+    - accelerate-llvm
+    - accelerate-llvm-native
+
 - github: tmcdonell/hashable-accelerate
   commit: 0b4e0893af766722836333776b9415e8e6e7941a
 

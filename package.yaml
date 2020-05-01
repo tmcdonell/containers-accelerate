@@ -42,6 +42,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - accelerate
+    - accelerate-llvm-native
     - containers
     - containers-accelerate
     - half

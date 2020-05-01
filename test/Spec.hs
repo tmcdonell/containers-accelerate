@@ -4,8 +4,8 @@ module Main where
 import HashMap
 import Sort.Quick
 
-import Data.Array.Accelerate.Interpreter
--- import Data.Array.Accelerate.LLVM.Native
+-- import Data.Array.Accelerate.Interpreter
+import Data.Array.Accelerate.LLVM.Native
 
 import Test.Tasty
 
