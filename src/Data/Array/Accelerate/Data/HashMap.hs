@@ -179,6 +179,13 @@ insertWithKey
     -> Acc (HashMap k v)
 insertWithKey f kv hm =
   let
+      -- TODO: This is very inefficient. We should update the existing
+      -- association array in-place to keep that part in sorted order, and
+      -- then merge in the new (sorted) key-value before recreating the
+      -- tree structure. This should be quicker than sorting the entire
+      -- combined association array.
+      --
+
       -- return the updated values whose keys already exist in the map
       (is, kv1) = unzip . afst $ justs tmp
       tmp       = A.map (\(T2 k v) -> let mu = lookupWithIndex k hm
