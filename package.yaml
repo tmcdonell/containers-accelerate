@@ -29,6 +29,8 @@ library:
   ghc-options:
     - -Wall
     - -O2
+  other-modules:
+    - Data.Array.Accelerate.Data.Tree.Radix
 
 tests:
   containers-accelerate-test:
