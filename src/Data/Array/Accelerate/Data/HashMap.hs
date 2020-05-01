@@ -17,6 +17,9 @@ module Data.Array.Accelerate.Data.HashMap (
 
   HashMap, Hashable,
 
+  -- * Construction
+  fromVector,
+
   -- * Basic interface
   size,
   member,
@@ -31,10 +34,7 @@ module Data.Array.Accelerate.Data.HashMap (
   -- * Conversions
   keys,
   elems,
-
-  -- * Arrays
-  fromVector,
-  toVector,
+  assocs,
 
 ) where
 
@@ -95,10 +95,15 @@ lookupWithIndex key (HashMap_ tree kv) = result
     index  (Ptr_ x)   = clearBit x (bits - 1)
     isLeaf (Ptr_ x)   = testBit  x (bits - 1)
 
-    T2 _ result       = while (\(T2 i _) -> i < n) step (T2 0 Nothing_)
-    step (T2 i _)     =
-      let Node_ d l r _p = tree !! i
-          d'             = fromIntegral d
+    result
+      = length kv == 0 ? ( Nothing_               -- empty map!
+      , length kv == 1 ? ( let T2 k v = kv !! 0   -- the tree structure is empty
+                            in k == key ? (Just_ (T2 0 v), Nothing_)
+      , {- otherwise -}    snd $ while (\(T2 i _) -> i < n) search (T2 0 Nothing_) ))
+
+    search (T2 i _) =
+      let Node_ d l r p = tree !! i
+          d'            = fromIntegral d
        in if d' < bits
              then let m = testBit h (bits - d' - 1) ? (r, l)
                       j = index m
@@ -107,8 +112,34 @@ lookupWithIndex key (HashMap_ tree kv) = result
                                in T2 n (k == key ? (Just_ (T2 j v), Nothing_))
                          else T2 j Nothing_
              else
-               -- TODO: there was a hash collision
-              T2 n Nothing_
+               -- there was a hash collision; exhaustively search this
+               -- sub-tree comparing the keys
+               let T3 _ _ x = while (\(T3 j _ c) -> isNothing c && j /= p)
+                                    exhaust
+                                    (T3 i (-1) Nothing_)
+                in T2 n x
+
+    exhaust (T3 i prev _) =
+      let Node_ _ l r p = tree !! i
+          fromLeft      = index l == prev
+          fromRight     = index r == prev
+       in if fromLeft
+             then -- recurse right
+               let j = index r
+               in if isLeaf r
+                     then let T2 k v = kv !! j
+                           in T3 i j (k == key ? (Just_ (T2 j v), Nothing_))
+                     else T3 j i Nothing_
+             else
+          if fromRight
+             then -- go up to the parent
+               T3 p i Nothing_
+             else -- recurse left
+               let j = index l
+                in if isLeaf l
+                      then let T2 k v = kv !! j
+                            in T3 i j (k == key ? (Just_ (T2 j v), Nothing_))
+                      else T3 j i Nothing_
 
 
 -- | /O(n)/ Transform the map by applying a function to every value
@@ -133,18 +164,19 @@ keys (HashMap_ _ kv) = A.map fst kv
 elems :: (Elt k, Elt v) => Acc (HashMap k v) -> Acc (Vector v)
 elems (HashMap_ _ kv) = A.map snd kv
 
+-- | /O(1)/ Return this map's (key,value) pairs
+--
+assocs :: (Elt k, Elt v) => Acc (HashMap k v) -> Acc (Vector (k,v))
+assocs (HashMap_ _ kv) = kv
+
 -- | /O(n log n)/ Construct a map from the supplied (key,value) pairs
 --
 fromVector :: (Hashable k, Elt v) => Acc (Vector (k,v)) -> Acc (HashMap k v)
-fromVector assocs = HashMap_ tree kv
+fromVector v = HashMap_ tree kv
   where
     tree    = binary_radix_tree h
-    (h, kv) = unzip
+    kv      = gather p v
+    (h, p)  = unzip
             . quicksortBy (compare `on` fst)
-            $ A.map (\(T2 k v) -> T2 (bitcast (hash k)) (T2 k v)) assocs
-
--- | /O(1)/ Return this map's (key,value) pairs
---
-toVector :: (Elt k, Elt v) => Acc (HashMap k v) -> Acc (Vector (k,v))
-toVector (HashMap_ _ kv) = kv
+            $ imap (\(I1 i) (T2 k _) -> T2 (bitcast (hash k)) i) v
 
