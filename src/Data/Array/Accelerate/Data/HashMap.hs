@@ -24,8 +24,8 @@ module Data.Array.Accelerate.Data.HashMap (
   size,
   member,
   lookup,
-  -- insert,
-  -- alter,
+  insert, insertWith, insertWithKey,
+  adjust, adjustWithKey,
 
   -- * Transformations
   map,
@@ -140,6 +140,96 @@ lookupWithIndex key (HashMap_ tree kv) = result
                       then let T2 k v = kv !! j
                             in T3 i j (k == key ? (Just_ (T2 j v), Nothing_))
                       else T3 j i Nothing_
+
+
+-- | Insert new (key,value) pairs into the map. If the key is already
+-- present in the map, the associated value is replaced with the supplied
+-- value.
+--
+insert :: (Eq k, Hashable k, Elt v)
+       => Acc (Vector (k,v))
+       -> Acc (HashMap k v)
+       -> Acc (HashMap k v)
+insert = insertWith const
+
+-- | Insert with a function combining the new value and old value. Each
+-- pair will be inserted into the map if the key does not already exist. If
+-- the key exists, the pair '(key, f new_value old_value)' will be
+-- inserted.
+--
+insertWith
+    :: (Eq k, Hashable k, Elt v)
+    => (Exp v -> Exp v -> Exp v)
+    -> Acc (Vector (k,v))
+    -> Acc (HashMap k v)
+    -> Acc (HashMap k v)
+insertWith f = insertWithKey (const f)
+
+-- | /O(n log n)/ Insert values into the map using a function to combine
+-- the new value and old value. Each pair will be inserted into the map if
+-- the key does not already exist. If the key exists, the pair
+-- '(key, f key new_value old_value)' will be inserted.
+--
+insertWithKey
+    :: (Eq k, Hashable k, Elt v)
+    => (Exp k -> Exp v -> Exp v -> Exp v)
+    -> Acc (Vector (k,v))
+    -> Acc (HashMap k v)
+    -> Acc (HashMap k v)
+insertWithKey f kv hm =
+  let
+      -- return the updated values whose keys already exist in the map
+      (is, kv1) = unzip . afst $ justs tmp
+      tmp       = A.map (\(T2 k v) -> let mu = lookupWithIndex k hm
+                                       in if isJust mu
+                                             then let T2 i u = fromJust mu
+                                                   in Just_ (T2 i (T2 k (f k v u)))
+                                             else Nothing_) kv
+
+      -- existing values which were not updated
+      kv2 = afst
+          . justs
+          . scatter is (A.map Just_ (assocs hm))
+          $ fill (shape is) Nothing_
+
+      -- new keys which did not already exist in the map
+      kv3 = afst
+          . justs
+          $ zipWith (\mv x -> if isJust mv then Nothing_ else Just_ x) tmp kv
+   in
+   fromVector (kv1 ++ kv2 ++ kv3)
+
+
+-- | Update a value at a specific key using the provided function. When the
+-- key is not a member of the map, that key is ignored.
+--
+adjust :: (Eq k, Hashable k, Elt v)
+       => (Exp v -> Exp v)
+       -> Acc (Vector k)
+       -> Acc (HashMap k v)
+       -> Acc (HashMap k v)
+adjust f = adjustWithKey (const f)
+
+-- | Update a value at a specific key using the provided function. When the
+-- key is not a member of the map, that key is ignored.
+--
+adjustWithKey
+    :: (Eq k, Hashable k, Elt v)
+    => (Exp k -> Exp v -> Exp v)
+    -> Acc (Vector k)
+    -> Acc (HashMap k v)
+    -> Acc (HashMap k v)
+adjustWithKey f ks hm@(HashMap_ tree kvs) =
+  let
+      (is, new) = unzip . afst
+                . justs
+                $ A.map (\k -> let mv = lookupWithIndex k hm
+                                in if isJust mv
+                                      then let T2 i v = fromJust mv
+                                            in Just_ (T2 i (T2 k (f k v)))
+                                      else Nothing_) ks
+   in
+   HashMap_ tree (scatter is kvs new)
 
 
 -- | /O(n)/ Transform the map by applying a function to every value

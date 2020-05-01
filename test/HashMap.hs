@@ -57,7 +57,7 @@ test_hashmap runN =
 
 
 _MAX_SIZE :: Int
-_MAX_SIZE = 2 P.^ (10::Int)
+_MAX_SIZE = 1024
 
 test_lookup
     :: (P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
