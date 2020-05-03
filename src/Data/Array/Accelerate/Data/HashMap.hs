@@ -150,6 +150,8 @@ lookupWithIndex key (HashMap_ tree kv) = result
 -- present in the map, the associated value is replaced with the supplied
 -- value.
 --
+-- The keys to insert must be unique.
+--
 insert :: (Eq k, Hashable k, Elt v)
        => Acc (Vector (k,v))
        -> Acc (HashMap k v)
@@ -160,6 +162,8 @@ insert = insertWith const
 -- pair will be inserted into the map if the key does not already exist. If
 -- the key exists, the pair '(key, f new_value old_value)' will be
 -- inserted.
+--
+-- The keys to insert must be unique.
 --
 insertWith
     :: (Eq k, Hashable k, Elt v)
@@ -174,41 +178,45 @@ insertWith f = insertWithKey (const f)
 -- the key does not already exist. If the key exists, the pair
 -- '(key, f key new_value old_value)' will be inserted.
 --
+-- The keys to insert must be unique.
+--
 insertWithKey
     :: (Eq k, Hashable k, Elt v)
     => (Exp k -> Exp v -> Exp v -> Exp v)
     -> Acc (Vector (k,v))
     -> Acc (HashMap k v)
     -> Acc (HashMap k v)
-insertWithKey f kv hm =
+insertWithKey f kv hm@(HashMap_ tree kv0) =
   let
       -- TODO: This is very inefficient. We should update the existing
       -- association array in-place to keep that part in sorted order, and
-      -- then merge in the new (sorted) key-value before recreating the
-      -- tree structure. This should be quicker than sorting the entire
+      -- then sort and merge in the new key-value pairs before recreating
+      -- the tree structure. This should be quicker than sorting the entire
       -- combined association array.
       --
+      -- TODO: Handle inputs containing non-unique keys
 
-      -- return the updated values whose keys already exist in the map
-      (is, kv1) = unzip . afst $ justs tmp
-      tmp       = A.map (\(T2 k v) -> let mu = lookupWithIndex k hm
+      -- Update the values of any keys which already exist in the map
+      -- in-place. This keeps the main association array in sorted order
+      --
+      old        = if the sz == length kv  -- no existing values were updated
+                     then kv0
+                     else permute const kv0 (\ix -> let i = is ! ix in i < 0 ? (ignore, I1 i)) kv'
+      (is, kv') = unzip
+                $ A.map (\(T2 k v) -> let mu = lookupWithIndex k hm
                                        in if isJust mu
                                              then let T2 i u = fromJust mu
-                                                   in Just_ (T2 i (T2 k (f k v u)))
-                                             else Nothing_) kv
+                                                   in T2 i (T2 k (f k v u))
+                                             else T2 (-1) undef) kv
 
-      -- existing values which were not updated
-      kv2 = afst
-          . justs
-          . scatter is (A.map Just_ (assocs hm))
-          $ fill (shape is) Nothing_
-
-      -- new keys which did not already exist in the map
-      kv3 = afst
-          . justs
-          $ zipWith (\mv x -> if isJust mv then Nothing_ else Just_ x) tmp kv
+      -- Any keys which were not already in the map now need to be added
+      --
+      T2 new sz = filter (\(T2 i _) -> i < 0)
+                $ zip is kv
    in
-   fromVector (kv1 ++ kv2 ++ kv3)
+   if the sz == 0
+      then HashMap_ tree old
+      else fromVector (old ++ A.map snd new)
 
 
 -- | Delete a key and its value from the map. When the key is not a member
@@ -310,6 +318,6 @@ fromVector v = HashMap_ tree kv
     tree    = binary_radix_tree h
     kv      = gather p v
     (h, p)  = unzip
-            . quicksortBy (compare `on` fst)
+            . sortBy (compare `on` fst)
             $ imap (\(I1 i) (T2 k _) -> T2 (bitcast (hash k)) i) v
 

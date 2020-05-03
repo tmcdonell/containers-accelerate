@@ -3,7 +3,7 @@
 {-# LANGUAGE RebindableSyntax    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 -- |
--- Module      : Data.Array.Accelerate.Data.Tree.Radix
+-- Module      : Data.Array.Accelerate.Data.Sort.Quick
 -- Copyright   : [2020] Ivo Gabe de Wolff, Trevor L. McDonell
 -- License     : BSD3
 --
@@ -14,8 +14,8 @@
 
 module Data.Array.Accelerate.Data.Sort.Quick (
 
-  quicksort,
-  quicksortBy,
+  sort,
+  sortBy,
 
 ) where
 
@@ -24,23 +24,19 @@ import Data.Array.Accelerate.Unsafe
 import Data.Array.Accelerate.Data.Bits
 
 
--- A quick-ish stable sort. This is a special case of 'quicksortBy' which
--- allows the users to supply their own comparison function.
+-- | A quick-ish stable sort. This is a special case of 'sortBy' which
+-- allows the user to supply their own comparison function.
 --
-quicksort :: Ord a => Acc (Vector a) -> Acc (Vector a)
-quicksort = quicksortBy compare
+sort :: Ord a => Acc (Vector a) -> Acc (Vector a)
+sort = sortBy compare
 
--- A non-overloaded version of 'quicksort'.
+-- | A non-overloaded version of 'sort'.
 --
 -- It is often convenient to use this together with 'Data.Function.on', for
--- instance: 'quicksortBy' ('compare' `on` 'fst')
+-- instance: 'sortBy' ('compare' `on` 'fst')
 --
-quicksortBy
-    :: Elt a
-    => (Exp a -> Exp a -> Exp Ordering)
-    -> Acc (Vector a)
-    -> Acc (Vector a)
-quicksortBy cmp input = result
+sortBy :: Elt a => (Exp a -> Exp a -> Exp Ordering) -> Acc (Vector a) -> Acc (Vector a)
+sortBy cmp input = result
   where
     -- Initially, we have one segment, namely the whole array
     initialFlags = scatter (fill (I1 1) 0 ++ fill (I1 1) (length input)) emptyFlags fullFlags

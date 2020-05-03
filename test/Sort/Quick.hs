@@ -10,11 +10,11 @@ import Gen
 
 import Data.Array.Accelerate                                        as A
 import Data.Array.Accelerate.Array.Sugar                            as S ( shape )
-import Data.Array.Accelerate.Data.Sort.Quick
+import Data.Array.Accelerate.Data.Sort.Quick                        as A
 
 import Data.Typeable
 import Data.Function
-import Data.List
+import Data.List                                                    as P
 import Prelude                                                      as P
 
 import Hedgehog
@@ -59,7 +59,7 @@ test_sort_ascending runN e =
   property $ do
     sh <- forAll dim1
     xs <- forAll (array sh e)
-    let !go = runN quicksort in go xs === sortRef P.compare xs
+    let !go = runN A.sort in go xs === sortRef P.compare xs
 
 test_sort_descending
     :: (P.Ord e, A.Ord e)
@@ -70,7 +70,7 @@ test_sort_descending runN e =
   property $ do
     sh <- forAll dim1
     xs <- forAll (array sh e)
-    let !go = runN (quicksortBy (flip A.compare)) in go xs === sortRef (flip P.compare) xs
+    let !go = runN (A.sortBy (flip A.compare)) in go xs === sortRef (flip P.compare) xs
 
 test_sort_keyval
     :: (P.Ord k, P.Eq v, A.Ord k, A.Eq v)
@@ -82,8 +82,8 @@ test_sort_keyval runN k v =
   property $ do
     sh <- forAll dim1
     xs <- forAll (array sh ((,) <$> k <*> v))
-    let !go = runN (quicksortBy (A.compare `on` A.fst)) in go xs === sortRef (P.compare `on` P.fst) xs
+    let !go = runN (A.sortBy (A.compare `on` A.fst)) in go xs === sortRef (P.compare `on` P.fst) xs
 
 sortRef :: Elt a => (a -> a -> Ordering) -> Vector a -> Vector a
-sortRef cmp xs = fromList (S.shape xs) (sortBy cmp (toList xs))
+sortRef cmp xs = fromList (S.shape xs) (P.sortBy cmp (toList xs))
 
