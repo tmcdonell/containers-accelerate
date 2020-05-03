@@ -85,7 +85,7 @@ binary_radix_tree keys = zipWith4 Node_ deltas lefts rights parents
           -- compute upper bound for the length of the range
           delta_min = delta i (i-d)
           l_max     = while (\l_max' -> delta i (i+l_max'*d) > delta_min)
-                            (*4)    -- *2
+                            (*4)    -- (*2)
                             128     -- 2
 
           -- find the other end using binary search
