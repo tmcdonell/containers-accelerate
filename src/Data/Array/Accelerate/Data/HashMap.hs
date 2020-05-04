@@ -150,8 +150,6 @@ lookupWithIndex key (HashMap_ tree kv) = result
 -- present in the map, the associated value is replaced with the supplied
 -- value.
 --
--- The keys to insert must be unique.
---
 insert :: (Eq k, Hashable k, Elt v)
        => Acc (Vector (k,v))
        -> Acc (HashMap k v)
@@ -162,8 +160,6 @@ insert = insertWith const
 -- pair will be inserted into the map if the key does not already exist. If
 -- the key exists, the pair '(key, f new_value old_value)' will be
 -- inserted.
---
--- The keys to insert must be unique.
 --
 insertWith
     :: (Eq k, Hashable k, Elt v)
@@ -177,8 +173,6 @@ insertWith f = insertWithKey (const f)
 -- the new value and old value. Each pair will be inserted into the map if
 -- the key does not already exist. If the key exists, the pair
 -- '(key, f key new_value old_value)' will be inserted.
---
--- The keys to insert must be unique.
 --
 insertWithKey
     :: (Eq k, Hashable k, Elt v)
@@ -216,7 +210,7 @@ insertWithKey f kv hm@(HashMap_ tree kv0) =
    in
    if the sz == 0
       then HashMap_ tree old
-      else fromVector (old ++ A.map snd new)
+      else fromVector (old ++ A.map snd new)    -- TODO: merge sorted subarrays & rebuild tree
 
 
 -- | Delete a key and its value from the map. When the key is not a member
