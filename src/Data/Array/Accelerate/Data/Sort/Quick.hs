@@ -60,7 +60,7 @@ step cmp (T2 values headFlags) = (T2 values' headFlags')
     pivots = propagateSegmentHead headFlags values
 
     -- Find which elements are larger than the pivot
-    isLarger = zipWith (\v p -> cmp v p /= constant LT) values pivots
+    isLarger = zipWith (\v p -> cmp v p /= LT_) values pivots
 
     -- Propagate the start index of a segment to all elements
     startIndex = propagateSegmentHead headFlags (generate (shape values) unindex1)

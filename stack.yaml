@@ -11,7 +11,7 @@ packages:
 
 extra-deps:
 - github: tmcdonell/accelerate
-  commit: bff50f34688c6a0ef0bf63b01a9a4fe0890bbd9a
+  commit: 7e5ca843575ec15e1e2f00683d3d29cd7907b9f9
 
 - github: tmcdonell/accelerate-llvm
   commit: a5c4e5a424414c141e66229bc3c91113f9e699af

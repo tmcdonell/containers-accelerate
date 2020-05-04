@@ -71,7 +71,7 @@ insertion_sort cmp n xs = scatter indices (fill (I1 n) undef) xs
           (\(T2 i c) ->
               let x'      = xs !! i
                   smaller = let d = cmp x' x
-                             in d == constant LT || d == constant EQ && i > ix
+                             in d == LT_ || d == EQ_ && i > ix
                in
                T2 (i + 1) (c + (smaller ? (1, 0))))
           (T2 segment_start 0)
@@ -130,7 +130,7 @@ binarySearch values cmp query inclusive initialMinIndex initialMaxIndex =
           let m   = (i + j) `quot` 2
               a_m = values !! m
               det = let c = a_m `cmp` query
-                     in c == constant LT || c == constant EQ && inclusive
+                     in c == LT_ || c == EQ_ && inclusive
            in
            det ? (T2 m j, T2 i m))
       (T2 (initialMinIndex - 1) initialMaxIndex)
