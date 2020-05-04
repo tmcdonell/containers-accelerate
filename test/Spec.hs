@@ -2,6 +2,7 @@
 module Main where
 
 import HashMap
+import Sort.Merge
 import Sort.Quick
 
 -- import Data.Array.Accelerate.Interpreter
@@ -14,6 +15,7 @@ main =
   defaultMain $
     testGroup "containers-accelerate"
     [ test_quicksort runN
+    , test_mergesort runN
     , test_hashmap runN
     ]
 
