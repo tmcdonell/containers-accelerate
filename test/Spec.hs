@@ -15,7 +15,7 @@ main =
   defaultMain $
     testGroup "containers-accelerate"
     [ test_quicksort runN
-    , test_mergesort runN
+    -- , test_mergesort runN
     , test_hashmap runN
     ]
 
