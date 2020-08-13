@@ -65,6 +65,7 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get -y install llvm-${{ matrix.llvm }}-dev
+        echo "::set-env name=LD_LIBRARY_PATH::$(stack exec ghc -- --print-libdir)/rts:${LD_LIBRARY_PATH}"
 
     - name: Setup (macOS)
       if: runner.os == 'macOS'
