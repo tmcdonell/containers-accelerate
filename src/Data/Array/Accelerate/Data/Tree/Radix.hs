@@ -23,6 +23,7 @@ module Data.Array.Accelerate.Data.Tree.Radix
 import Data.Array.Accelerate
 import Data.Array.Accelerate.Unsafe
 import Data.Array.Accelerate.Data.Bits
+import Data.Array.Accelerate.Data.Maybe
 
 import qualified Data.Bits as P
 import qualified Prelude   as P
@@ -32,7 +33,7 @@ data Node = Node !Word8 -- descriminator bit
                  !Ptr   -- left pointer
                  !Ptr   -- right pointer
                  !Int   -- parent node index
-  deriving (Show, Generic, Elt, IsProduct Elt)
+  deriving (Show, Generic, Elt)
 
 pattern Node_ :: Exp Word8 -> Exp Ptr -> Exp Ptr -> Exp Int -> Exp Node
 pattern Node_ b l r p = Pattern (b, l, r, p)
@@ -42,7 +43,7 @@ pattern Node_ b l r p = Pattern (b, l, r, p)
 -- uses signed integers for array indices anyway?? ¯\_(ツ)_/¯
 --
 newtype Ptr = Ptr Int
-  deriving (Generic, Elt, IsProduct Elt)
+  deriving (Generic, Elt)
 
 instance Show Ptr where
   showsPrec d (Ptr x)
@@ -140,6 +141,6 @@ binary_radix_tree keys = zipWith4 Node_ deltas lefts rights parents
          in permute const
               (fill (I1 (n-1)) undef)
               (\ix -> let d = dest ! ix in
-                       if d < 0 then ignore else I1 d)
+                       if d < 0 then Nothing_ else Just_ (I1 d))
               from
 

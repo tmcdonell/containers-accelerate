@@ -5,8 +5,9 @@
 module Gen where
 
 import Data.Array.Accelerate                                        ( Acc, Arrays, Array, Shape, Elt, DIM0, DIM1, DIM2, DIM3, Z(..), (:.)(..), fromList )
-import Data.Array.Accelerate.Trafo                                  ( Afunction, AfunctionR )
-import Data.Array.Accelerate.Array.Sugar                            ( size )
+import Data.Array.Accelerate.Trafo                                  ( Afunction )
+import Data.Array.Accelerate.Trafo.Sharing                          ( AfunctionR )
+import Data.Array.Accelerate.Sugar.Shape                            ( size )
 
 import Data.Int
 import Data.Word

@@ -4,26 +4,31 @@
 # For advanced use and comprehensive documentation of the format, please see:
 # https://docs.haskellstack.org/en/stable/yaml_configuration/
 
-resolver: lts-15.9
+resolver: nightly-2020-08-13
 
 packages:
 - .
 
 extra-deps:
 - github: tmcdonell/accelerate
-  commit: 7e5ca843575ec15e1e2f00683d3d29cd7907b9f9
+  commit: ea73be67853bb01978308e3c1aec14484feff50c
 
 - github: tmcdonell/accelerate-llvm
-  commit: a5c4e5a424414c141e66229bc3c91113f9e699af
+  commit: 5c7f1096d23874bebc67a71053e586c9e0eb5105
   subdirs:
     - accelerate-llvm
     - accelerate-llvm-native
 
 - github: tmcdonell/hashable-accelerate
-  commit: 0b4e0893af766722836333776b9415e8e6e7941a
+  commit: c8fdfa5dc2bf70ceb16c6036a873a77725ad1c74
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
+
+# Extra per-package and global ghc options
+# Required because Cabal-3 is a broken POS
+ghc-options:
+  llvm-hs: -optcxx=-std=c++11
 
 # Extra package databases containing global packages
 # extra-package-dbs: []
@@ -33,7 +38,7 @@ extra-deps:
 #
 # Require a specific version of stack, using version ranges
 # require-stack-version: -any # Default
-# require-stack-version: ">=2.1"
+# require-stack-version: ">=2.3"
 #
 # Override the architecture used by stack, especially useful on Windows
 # arch: i386
