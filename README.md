@@ -15,7 +15,7 @@
 Various container types and algorithms for use with [Accelerate][accelerate].
 
 Contributions and bug reports are welcome!<br>
-Please feel free to contact me through GitHub or [gitter.im][gitter.im].
+Please feel free to contact me through [GitHub][accelerate] or [gitter.im][gitter.im].
 
  [accelerate]:          https://github.com/AccelerateHS/accelerate
  [gitter.im]:           https://gitter.im/AccelerateHS/Lobby
