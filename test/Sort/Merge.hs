@@ -9,7 +9,6 @@ module Sort.Merge where
 import Gen
 
 import Data.Array.Accelerate                                        as A
-import Data.Array.Accelerate.Array.Sugar                            as S ( shape )
 import Data.Array.Accelerate.Data.Sort.Merge                        as A
 
 import Data.Typeable
@@ -40,7 +39,7 @@ test_mergesort runN =
     , testElt f64
     ]
   where
-    testElt :: forall e. (P.Ord e, A.Ord e)
+    testElt :: forall e. (Show e, Typeable e, P.Ord e, A.Ord e)
             => Gen e
             -> TestTree
     testElt e =
@@ -51,7 +50,7 @@ test_mergesort runN =
         ]
 
 test_sort_ascending
-    :: (P.Ord e, A.Ord e)
+    :: (Show e, P.Ord e, A.Ord e)
     => RunN
     -> Gen e
     -> Property
@@ -62,7 +61,7 @@ test_sort_ascending runN e =
     let !go = runN A.sort in go xs === sortRef P.compare xs
 
 test_sort_descending
-    :: (P.Ord e, A.Ord e)
+    :: (Show e, P.Ord e, A.Ord e)
     => RunN
     -> Gen e
     -> Property
@@ -73,7 +72,7 @@ test_sort_descending runN e =
     let !go = runN (A.sortBy (flip A.compare)) in go xs === sortRef (flip P.compare) xs
 
 test_sort_keyval
-    :: (P.Ord k, P.Eq v, A.Ord k, A.Eq v)
+    :: (Show k, Show v, P.Ord k, P.Eq v, A.Ord k, A.Eq v)
     => RunN
     -> Gen k
     -> Gen v
@@ -85,5 +84,5 @@ test_sort_keyval runN k v =
     let !go = runN (A.sortBy (A.compare `on` A.fst)) in go xs === sortRef (P.compare `on` P.fst) xs
 
 sortRef :: Elt a => (a -> a -> Ordering) -> Vector a -> Vector a
-sortRef cmp xs = fromList (S.shape xs) (P.sortBy cmp (toList xs))
+sortRef cmp xs = fromList (arrayShape xs) (P.sortBy cmp (toList xs))
 

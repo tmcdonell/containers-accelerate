@@ -1,5 +1,5 @@
 .stack-work/
 *~
 /.stack-work
-/containers-accelerate.cabal
 /stack.yaml.lock
+/stack.yaml

@@ -4,23 +4,16 @@
 # For advanced use and comprehensive documentation of the format, please see:
 # https://docs.haskellstack.org/en/stable/yaml_configuration/
 
-resolver: lts-15.9
+resolver: lts-14.27
 
 packages:
 - .
 
 extra-deps:
-- github: tmcdonell/accelerate
-  commit: 7e5ca843575ec15e1e2f00683d3d29cd7907b9f9
-
-- github: tmcdonell/accelerate-llvm
-  commit: a5c4e5a424414c141e66229bc3c91113f9e699af
-  subdirs:
-    - accelerate-llvm
-    - accelerate-llvm-native
-
-- github: tmcdonell/hashable-accelerate
-  commit: 0b4e0893af766722836333776b9415e8e6e7941a
+- accelerate-1.3.0.0
+- accelerate-llvm-1.3.0.0
+- accelerate-llvm-native-1.3.0.0
+- hashable-accelerate-0.1.0.0
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
@@ -33,7 +26,7 @@ extra-deps:
 #
 # Require a specific version of stack, using version ranges
 # require-stack-version: -any # Default
-# require-stack-version: ">=2.1"
+# require-stack-version: ">=2.3"
 #
 # Override the architecture used by stack, especially useful on Windows
 # arch: i386

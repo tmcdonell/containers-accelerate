@@ -195,7 +195,7 @@ insertWithKey f kv hm@(HashMap_ tree kv0) =
       --
       old        = if the sz == length kv  -- no existing values were updated
                      then kv0
-                     else permute const kv0 (\ix -> let i = is ! ix in i < 0 ? (ignore, I1 i)) kv'
+                     else permute const kv0 (\ix -> let i = is ! ix in i < 0 ? (Nothing_, Just_ (I1 i))) kv'
       (is, kv') = unzip
                 $ A.map (\(T2 k v) -> let mu = lookupWithIndex k hm
                                        in if isJust mu

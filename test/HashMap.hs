@@ -48,7 +48,7 @@ test_hashmap runN =
     , testElt f64
     ]
   where
-    testElt :: forall e. (P.Ord e, A.Hashable e, A.Eq e)
+    testElt :: forall e. (Show e, Typeable e, P.Ord e, A.Hashable e, A.Eq e)
             => Gen e
             -> TestTree
     testElt e =
@@ -64,7 +64,7 @@ _MAX_SIZE :: Int
 _MAX_SIZE = 1024
 
 test_lookup
-    :: (P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
+    :: (Show k, Show v, P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
     => RunN
     -> Gen k
     -> Gen v
@@ -84,7 +84,7 @@ test_lookup runN k v =
 
 
 test_insert
-    :: (P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
+    :: (Show k, Show v, P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
     => RunN
     -> Gen k
     -> Gen v
@@ -92,7 +92,7 @@ test_insert
 test_insert runN = test_insertWith runN const const
 
 test_insertWith
-    :: (P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
+    :: (Show k, Show v, P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
     => RunN
     -> (Exp v -> Exp v -> Exp v)
     -> (v -> v -> v)
@@ -102,7 +102,7 @@ test_insertWith
 test_insertWith runN f g = test_insertWithKey runN (const f) (const g)
 
 test_insertWithKey
-    :: (P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
+    :: (Show k, Show v, P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
     => RunN
     -> (Exp k -> Exp v -> Exp v -> Exp v)
     -> (k -> v -> v -> v)
@@ -120,7 +120,7 @@ test_insertWithKey runN f g k v =
 
 
 test_delete
-    :: (P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
+    :: (Show k, Show v, P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
     => RunN
     -> Gen k
     -> Gen v
@@ -144,7 +144,7 @@ collides :: Gen a -> Gen (Collides a)
 collides g = Collides <$> g
 
 newtype Collides a = Collides a
-  deriving (Show, P.Eq, P.Ord, Generic, Elt, IsProduct Elt)
+  deriving (Show, P.Eq, P.Ord, Generic, Elt)
 
 pattern Collides_ :: Elt a => Exp a -> Exp (Collides a)
 pattern Collides_ x = Pattern x
