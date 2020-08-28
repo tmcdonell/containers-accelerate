@@ -4,18 +4,17 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6f8da609ee6f2d4e6b7be96ad2d30511909de1dc9448a821be3e18c0c31792e6
+-- hash: ae9a1d664a428489004574fb4d46c181945819f4423f2cd12d994ba7e29e41de
 
 name:           containers-accelerate
 version:        0.1.0.0
 synopsis:       Hashing-based container types
 description:    Please see the README on GitHub at <https://github.com/tmcdonell/containers-accelerate#readme>
-category:       Data, Parallelism
+category:       Accelerate, Data
 homepage:       https://github.com/tmcdonell/containers-accelerate#readme
 bug-reports:    https://github.com/tmcdonell/containers-accelerate/issues
 author:         Trevor L. McDonell
-maintainer:     trevor.mcdonell@gmail.com
-copyright:      Trevor L. McDonell &lt;trevor.mcdonell@gmail.com&gt;
+maintainer:     Trevor L. McDonell <trevor.mcdonell@gmail.com>
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple

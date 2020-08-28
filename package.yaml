@@ -3,8 +3,7 @@ version:             0.1.0.0
 github:              "tmcdonell/containers-accelerate"
 license:             BSD3
 author:              "Trevor L. McDonell"
-maintainer:          "trevor.mcdonell@gmail.com"
-copyright:           "Trevor L. McDonell &lt;trevor.mcdonell@gmail.com&gt;"
+maintainer:          "Trevor L. McDonell <trevor.mcdonell@gmail.com>"
 
 extra-source-files:
 - README.md
@@ -12,7 +11,7 @@ extra-source-files:
 
 # Metadata used when publishing your package
 synopsis:            Hashing-based container types
-category:            Data, Parallelism
+category:            Accelerate, Data
 
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
