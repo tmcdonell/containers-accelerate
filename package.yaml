@@ -40,7 +40,6 @@ tests:
     - -O2
     - -threaded
     - -rtsopts
-    - -with-rtsopts=-N
     dependencies:
     - accelerate
     - accelerate-llvm-native

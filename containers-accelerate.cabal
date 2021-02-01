@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ae9a1d664a428489004574fb4d46c181945819f4423f2cd12d994ba7e29e41de
+-- hash: 5c0220e6eedc85cbcb3400b72e1685eff456b616c6b64548ce7edb6fc0a75a80
 
 name:           containers-accelerate
 version:        0.1.0.0
@@ -54,7 +54,7 @@ test-suite containers-accelerate-test
       Paths_containers_accelerate
   hs-source-dirs:
       test
-  ghc-options: -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -O2 -threaded -rtsopts
   build-depends:
       accelerate
     , accelerate-llvm-native
