@@ -1,5 +1,7 @@
+{-# LANGUAGE BlockArguments   #-}
 {-# LANGUAGE DeriveAnyClass   #-}
 {-# LANGUAGE DeriveGeneric    #-}
+{-# LANGUAGE LambdaCase       #-}
 {-# LANGUAGE PatternSynonyms  #-}
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE TypeApplications #-}
@@ -206,11 +208,9 @@ insertWithKey f kv hm@(HashMap_ tree kv0) =
                      then kv0
                      else permute const kv0 (\ix -> let i = is ! ix in i < 0 ? (Nothing_, Just_ (I1 i))) kv'
       (is, kv') = unzip
-                $ A.map (\(T2 k v) -> let mu = lookupWithIndex k hm
-                                       in if isJust mu
-                                             then let T2 i u = fromJust mu
-                                                   in T2 i (T2 k (f k v u))
-                                             else T2 (-1) undef) kv
+                $ A.map (\(T2 k v) -> lookupWithIndex k hm & match \case
+                                        Just_ (T2 i u) -> T2 i (T2 k (f k v u))
+                                        Nothing_       -> T2 (-1) undef) kv
 
       -- Any keys which were not already in the map now need to be added
       --
@@ -233,11 +233,9 @@ delete ks hm =
   let
       -- determine indices of the association array which need to be removed
       T2 is sz = justs
-               $ A.map (\k -> let mu = lookupWithIndex k hm
-                               in if isJust mu
-                                     then let T2 i _ = fromJust mu
-                                           in Just_ i
-                                     else Nothing_) ks
+               $ A.map (\k -> lookupWithIndex k hm & match \case
+                                Just_ (T2 i _) -> Just_ i
+                                Nothing_       -> Nothing_) ks
 
       -- the (key,value) pairs are still in sorted order after knocking out
       -- the deleted elements, so we can recreate the tree directly
@@ -275,11 +273,9 @@ adjustWithKey f ks hm@(HashMap_ tree kvs) =
   let
       (is, new) = unzip iv
       T2 iv sz  = justs
-                $ A.map (\k -> let mv = lookupWithIndex k hm
-                                in if isJust mv
-                                      then let T2 i v = fromJust mv
-                                            in Just_ (T2 i (T2 k (f k v)))
-                                      else Nothing_) ks
+                $ A.map (\k -> lookupWithIndex k hm & match \case
+                                 Just_ (T2 i v) -> Just_ (T2 i (T2 k (f k v)))
+                                 Nothing_       -> Nothing_) ks
    in
    if the sz == 0
       then hm
