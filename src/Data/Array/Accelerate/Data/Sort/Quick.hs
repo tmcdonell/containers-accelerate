@@ -22,7 +22,6 @@ module Data.Array.Accelerate.Data.Sort.Quick (
 import Data.Array.Accelerate
 import Data.Array.Accelerate.Unsafe
 import Data.Array.Accelerate.Data.Bits
-import Data.Array.Accelerate.Data.Maybe
 
 
 -- | A quick-ish stable sort. This is a special case of 'sortBy' which
