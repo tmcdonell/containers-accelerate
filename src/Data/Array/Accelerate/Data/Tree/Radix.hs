@@ -23,7 +23,6 @@ module Data.Array.Accelerate.Data.Tree.Radix
 import Data.Array.Accelerate
 import Data.Array.Accelerate.Unsafe
 import Data.Array.Accelerate.Data.Bits
-import Data.Array.Accelerate.Data.Maybe
 
 import qualified Data.Bits as P
 import qualified Prelude   as P
