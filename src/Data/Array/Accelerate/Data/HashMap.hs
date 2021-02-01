@@ -18,6 +18,8 @@ module Data.Array.Accelerate.Data.HashMap (
   HashMap, Hashable,
 
   -- * Construction
+  empty,
+  singleton,
   fromVector,
 
   -- * Basic interface
@@ -303,6 +305,20 @@ elems (HashMap_ _ kv) = A.map snd kv
 --
 assocs :: (Elt k, Elt v) => Acc (HashMap k v) -> Acc (Vector (k,v))
 assocs (HashMap_ _ kv) = kv
+
+-- | /O(1)/ The empty map
+--
+-- @since 0.2.0.0@
+--
+empty :: (Hashable k, Elt v) => Acc (HashMap k v)
+empty = HashMap_ (fill (I1 0) undef) (fill (I1 0) undef)
+
+-- | /O(1)/ A map with a single element
+--
+-- @since 0.2.0.0@
+--
+singleton :: (Hashable k, Elt v) => Exp k -> Exp v -> Acc (HashMap k v)
+singleton k v = HashMap_ (fill (I1 0) undef) (fill (I1 1) (T2 k v))
 
 -- | /O(n log n)/ Construct a map from the supplied (key,value) pairs
 --

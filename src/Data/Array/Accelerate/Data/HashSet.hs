@@ -17,6 +17,8 @@ module Data.Array.Accelerate.Data.HashSet (
   HashSet, Hashable,
 
   -- * Construction
+  empty,
+  singleton,
   fromVector,
 
   -- * Basic interface
@@ -91,6 +93,20 @@ toMap (HashSet_ m) = m
 --
 fromMap :: Elt a => Acc (HashMap a ()) -> Acc (HashSet a)
 fromMap = HashSet_
+
+-- | /O(1)/ The empty set
+--
+-- @since 0.2.0.0@
+--
+empty :: Hashable a => Acc (HashSet a)
+empty = fromMap $ M.empty
+
+-- | /O(1)/ The singleton set
+--
+-- @since 0.2.0.0@
+--
+singleton :: Hashable a => Exp a -> Acc (HashSet a)
+singleton a = fromMap $ M.singleton a (constant ())
 
 -- | /O(n log n)/ Construct the set from the specified values
 --
