@@ -25,7 +25,7 @@ module Data.Array.Accelerate.Data.HashMap (
   -- * Basic interface
   size,
   member,
-  lookup,
+  lookup, (!?),
   insert, insertWith, insertWithKey,
   delete,
   adjust, adjustWithKey,
@@ -88,6 +88,13 @@ member k m =
 --
 lookup :: (Eq k, Hashable k, Elt v) => Exp k -> Acc (HashMap k v) -> Exp (Maybe v)
 lookup k hm = snd `fmap` lookupWithIndex k hm
+
+-- | /O(k)/ Infix version of 'lookup'
+--
+-- @since 0.2.0.0@
+--
+(!?) :: (Eq k, Hashable k, Elt v) => Exp k -> Acc (HashMap k v) -> Exp (Maybe v)
+(!?) = lookup
 
 lookupWithIndex :: (Eq k, Hashable k, Elt v) => Exp k -> Acc (HashMap k v) -> Exp (Maybe (Int, v))
 lookupWithIndex key (HashMap_ tree kv) = result
