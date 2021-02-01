@@ -27,6 +27,11 @@ module Data.Array.Accelerate.Data.HashSet (
   insert,
   delete,
 
+  -- * Combination
+  union,
+  difference, (\\),
+  intersection,
+
   -- * Conversions
   elems,
   toMap,
@@ -78,6 +83,46 @@ delete :: (Eq a, Hashable a)
        -> Acc (HashSet a)
        -> Acc (HashSet a)
 delete xs = fromMap . M.delete xs . toMap
+
+-- | Union of two sets
+--
+-- @since 0.2.0.0@
+--
+union :: (Eq a, Hashable a)
+      => Acc (HashSet a)
+      -> Acc (HashSet a)
+      -> Acc (HashSet a)
+union xs ys = fromMap (M.union (toMap xs) (toMap ys))
+
+-- | Difference of two sets
+--
+-- @since 0.2.0.0@
+--
+difference
+    :: (Eq a, Hashable a)
+    => Acc (HashSet a)
+    -> Acc (HashSet a)
+    -> Acc (HashSet a)
+difference xs ys = fromMap (toMap xs M.\\ toMap ys)
+
+-- | Same as 'difference'
+--
+-- @since 0.2.0.0@
+--
+infixl 9 \\
+(\\) :: (Eq a, Hashable a) => Acc (HashSet a) -> Acc (HashSet a) -> Acc (HashSet a)
+(\\) = difference
+
+-- | Intersection of two sets
+--
+-- @since 0.2.0.0@
+--
+intersection
+    :: (Eq a, Hashable a)
+    => Acc (HashSet a)
+    -> Acc (HashSet a)
+    -> Acc (HashSet a)
+intersection xs ys = fromMap (M.intersection (toMap xs) (toMap ys))
 
 -- | /O(1)/ Return the sets elements
 --

@@ -57,6 +57,9 @@ test_hashmap runN =
         , testProperty "lookup-with-collision" $ test_lookup runN (collides e) int
         , testProperty "insert"                $ test_insert runN e int
         , testProperty "delete"                $ test_delete runN e int
+        , testProperty "union"                 $ test_union runN e int
+        , testProperty "difference"            $ test_difference runN e int
+        , testProperty "intersection"          $ test_intersection runN e int
         ]
 
 
@@ -133,6 +136,114 @@ test_delete runN k v =
     --
     P.sortBy (P.compare `on` P.fst) (A.toList (go (fromMap m) (fromList (Z :. P.length n) n))) ===
       Map.toAscList (P.foldr Map.delete m n)
+
+
+test_union
+    :: (Show k, Show v, P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
+    => RunN
+    -> Gen k
+    -> Gen v
+    -> Property
+test_union runN = test_unionWith runN const const
+
+test_unionWith
+    :: (Show k, Show v, P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
+    => RunN
+    -> (Exp v -> Exp v -> Exp v)
+    -> (v -> v -> v)
+    -> Gen k
+    -> Gen v
+    -> Property
+test_unionWith runN f g = test_unionWithKey runN (const f) (const g)
+
+test_unionWithKey
+    :: (Show k, Show v, P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
+    => RunN
+    -> (Exp k -> Exp v -> Exp v -> Exp v)
+    -> (k -> v -> v -> v)
+    -> Gen k
+    -> Gen v
+    -> Property
+test_unionWithKey runN f g k v =
+  property $ do
+    m <- forAll $ G.map (R.linear 0 _MAX_SIZE) ((,) <$> k <*> v)
+    n <- forAll $ G.map (R.linear 0 _MAX_SIZE) ((,) <$> k <*> v)
+    let !go = runN (\kv1 kv2 -> HashMap.assocs $ HashMap.unionWithKey f (HashMap.fromVector kv1) (HashMap.fromVector kv2))
+    --
+    P.sortBy (P.compare `on` P.fst) (A.toList (go (fromMap m) (fromMap n))) ===
+      Map.toAscList (Map.unionWithKey g m n)
+
+
+test_difference
+    :: (Show k, Show v, P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
+    => RunN
+    -> Gen k
+    -> Gen v
+    -> Property
+test_difference runN = test_differenceWith runN (\_ _ -> Nothing_) (\_ _ -> Nothing)
+
+test_differenceWith
+    :: (Show k, Show v, P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
+    => RunN
+    -> (Exp v -> Exp v -> Exp (Maybe v))
+    -> (v -> v -> Maybe v)
+    -> Gen k
+    -> Gen v
+    -> Property
+test_differenceWith runN f g = test_differenceWithKey runN (const f) (const g)
+
+test_differenceWithKey
+    :: (Show k, Show v, P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
+    => RunN
+    -> (Exp k -> Exp v -> Exp v -> Exp (Maybe v))
+    -> (k -> v -> v -> Maybe v)
+    -> Gen k
+    -> Gen v
+    -> Property
+test_differenceWithKey runN f g k v =
+  property $ do
+    m <- forAll $ G.map (R.linear 0 _MAX_SIZE) ((,) <$> k <*> v)
+    n <- forAll $ G.map (R.linear 0 _MAX_SIZE) ((,) <$> k <*> v)
+    let !go = runN (\kv1 kv2 -> HashMap.assocs $ HashMap.differenceWithKey f (HashMap.fromVector kv1) (HashMap.fromVector kv2))
+    --
+    P.sortBy (P.compare `on` P.fst) (A.toList (go (fromMap m) (fromMap n))) ===
+      Map.toAscList (Map.differenceWithKey g m n)
+
+
+test_intersection
+    :: (Show k, Show v, P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
+    => RunN
+    -> Gen k
+    -> Gen v
+    -> Property
+test_intersection runN = test_intersectionWith runN const const
+
+test_intersectionWith
+    :: (Show k, Show v, P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
+    => RunN
+    -> (Exp v -> Exp v -> Exp v)
+    -> (v -> v -> v)
+    -> Gen k
+    -> Gen v
+    -> Property
+test_intersectionWith runN f g = test_intersectionWithKey runN (const f) (const g)
+
+test_intersectionWithKey
+    :: (Show k, Show v, P.Ord k, P.Eq v, A.Hashable k, A.Eq k, A.Eq v)
+    => RunN
+    -> (Exp k -> Exp v -> Exp v -> Exp v)
+    -> (k -> v -> v -> v)
+    -> Gen k
+    -> Gen v
+    -> Property
+test_intersectionWithKey runN f g k v =
+  property $ do
+    m <- forAll $ G.map (R.linear 0 _MAX_SIZE) ((,) <$> k <*> v)
+    n <- forAll $ G.map (R.linear 0 _MAX_SIZE) ((,) <$> k <*> v)
+    let !go = runN (\kv1 kv2 -> HashMap.assocs $ HashMap.intersectionWithKey f (HashMap.fromVector kv1) (HashMap.fromVector kv2))
+    --
+    P.sortBy (P.compare `on` P.fst) (A.toList (go (fromMap m) (fromMap n))) ===
+      Map.toAscList (Map.intersectionWithKey g m n)
 
 
 fromMap :: (Elt k, Elt v) => Map k v -> Vector (k,v)

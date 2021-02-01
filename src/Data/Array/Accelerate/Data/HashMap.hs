@@ -32,7 +32,12 @@ module Data.Array.Accelerate.Data.HashMap (
   delete,
   adjust, adjustWithKey,
 
-  -- * Transformations
+  -- * Combination
+  union, unionWith, unionWithKey,
+  difference, (\\), differenceWith, differenceWithKey,
+  intersection, intersectionWith, intersectionWithKey,
+
+  -- * Traversal
   map,
   mapWithKey,
 
@@ -280,6 +285,163 @@ adjustWithKey f ks hm@(HashMap_ tree kvs) =
    if the sz == 0
       then hm
       else HashMap_ tree (scatter is kvs new)
+
+
+-- | Left-biased union of two maps
+--
+-- @since 0.2.0.0@
+--
+union :: (Eq k, Hashable k, Elt v)
+      => Acc (HashMap k v)
+      -> Acc (HashMap k v)
+      -> Acc (HashMap k v)
+union = unionWith const
+
+-- | Union with a combining function
+--
+-- @since 0.2.0.0@
+--
+unionWith
+    :: (Eq k, Hashable k, Elt v)
+    => (Exp v -> Exp v -> Exp v)
+    -> Acc (HashMap k v)
+    -> Acc (HashMap k v)
+    -> Acc (HashMap k v)
+unionWith f = unionWithKey (const f)
+
+-- | Take the union of two maps with a combining function
+--
+-- @since 0.2.0.0@
+--
+unionWithKey
+    :: (Eq k, Hashable k, Elt v)
+    => (Exp k -> Exp v -> Exp v -> Exp v)
+    -> Acc (HashMap k v)
+    -> Acc (HashMap k v)
+    -> Acc (HashMap k v)
+unionWithKey f hm1 hm2 = fromVector (kv1 ++ kv2)
+  where
+    -- Values from the second map which are present in the first
+    (kv2, i1) = unzip
+              $ A.map (\(T2 k v2) -> lookupWithIndex k hm1 & match \case
+                                       Nothing_        -> T2 (T2 k v2)          Nothing_
+                                       Just_ (T2 i v1) -> T2 (T2 k (f k v1 v2)) (Just_ (I1 i))) (assocs hm2)
+
+    -- Knock out values from the first map which have already been merged
+    -- with values from the second
+    kv1       = afst
+              $ justs
+              $ permute const (A.map Just_ (assocs hm1)) (i1 !) (fill (shape (assocs hm2)) Nothing_)
+
+
+-- | Left-biased difference of two maps. Returns elements of the first map
+-- not existing in the second
+--
+-- @since 0.2.0.0@
+--
+difference
+    :: (Eq k, Hashable k, Elt a, Elt b)
+    => Acc (HashMap k a)
+    -> Acc (HashMap k b)
+    -> Acc (HashMap k a)
+difference = differenceWith (\_ _ -> Nothing_)
+
+-- | Same as 'difference'
+--
+-- @since 0.2.0.0@
+--
+infixl 9 \\
+(\\) :: (Eq k, Hashable k, Elt a, Elt b) => Acc (HashMap k a) -> Acc (HashMap k b) -> Acc (HashMap k a)
+(\\) = difference
+
+-- | Difference with a combining function.
+--
+-- @since 0.2.0.0@
+--
+differenceWith
+    :: (Eq k, Hashable k, Elt a, Elt b)
+    => (Exp a -> Exp b -> Exp (Maybe a))
+    -> Acc (HashMap k a)
+    -> Acc (HashMap k b)
+    -> Acc (HashMap k a)
+differenceWith f = differenceWithKey (const f)
+
+-- | Difference with a combining function. When two equal keys are
+-- encountered, the combining function is applied to the values of the
+-- keys. If it returns 'Nothing', the element is discarded (proper set
+-- difference). If it returns (@'Just' y@), the element is updated with the
+-- new value @y@.
+--
+-- @since 0.2.0.0@
+--
+differenceWithKey
+    :: (Eq k, Hashable k, Elt a, Elt b)
+    => (Exp k -> Exp a -> Exp b -> Exp (Maybe a))
+    -> Acc (HashMap k a)
+    -> Acc (HashMap k b)
+    -> Acc (HashMap k a)
+differenceWithKey f as bs = HashMap_ tree kv
+  where
+    kv    = afst
+          $ justs
+          $ A.map (\(T2 k va) -> lookup k bs & match \case
+                                   Nothing_ -> Just_ (T2 k va)
+                                   Just_ vb -> f k va vb & match \case
+                                                 Just_ va' -> Just_ (T2 k va')
+                                                 Nothing_  -> Nothing_) (assocs as)
+
+    tree  = binary_radix_tree
+          $ A.map (bitcast . hash . fst) kv
+
+
+-- | Left-biased intersection of two maps. Returns the data in the first
+-- map for the keys that exist in both.
+--
+-- @since 0.2.0.0@
+--
+intersection
+    :: (Eq k, Hashable k, Elt a, Elt b)
+    => Acc (HashMap k a)
+    -> Acc (HashMap k b)
+    -> Acc (HashMap k a)
+intersection = intersectionWith const
+
+-- | Intersection with a combining function
+--
+-- @since 0.2.0.0@
+--
+intersectionWith
+    :: (Eq k, Hashable k, Elt a, Elt b, Elt c)
+    => (Exp a -> Exp b -> Exp c)
+    -> Acc (HashMap k a)
+    -> Acc (HashMap k b)
+    -> Acc (HashMap k c)
+intersectionWith f = intersectionWithKey (const f)
+
+-- | Take the intersection of two maps with a combining function
+--
+-- @since 0.2.0.0@
+--
+intersectionWithKey
+    :: (Eq k, Hashable k, Elt a, Elt b, Elt c)
+    => (Exp k -> Exp a -> Exp b -> Exp c)
+    -> Acc (HashMap k a)
+    -> Acc (HashMap k b)
+    -> Acc (HashMap k c)
+intersectionWithKey f as bs = HashMap_ tree kv
+  where
+    -- Values from second map which are present in the first
+    -- TODO: should we do the lookup into the smaller array or the larger?
+    kv    = afst
+          $ justs
+          $ A.map (\(T2 k v2) -> lookup k as & match \case
+                                   Nothing_ -> Nothing_
+                                   Just_ v1 -> Just_ (T2 k (f k v1 v2))) (assocs bs)
+
+    -- The (hashed) keys from the first step are still in sorted order,
+    -- assuming 'justs' (a.k.a. 'filter') is stable, so no need to sort.
+    tree  = binary_radix_tree
+          $ A.map (bitcast . hash . fst) kv
 
 
 -- | /O(n)/ Transform the map by applying a function to every value
