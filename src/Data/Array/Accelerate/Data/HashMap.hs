@@ -324,12 +324,15 @@ unionWithKey f hm1@(HashMap_ _ kv1) (HashMap_ tree2 kv2) = -- fromVector (kv1 ++
       -- Values from the second map which are present in the first
       (kv2', rm)  = unzip
                   $ A.map (\(T2 k v2) -> lookupWithIndex k hm1 & match \case
-                                           Nothing_        -> T2 (T2 k v2)          Nothing_
-                                           Just_ (T2 i v1) -> T2 (T2 k (f k v1 v2)) (Just_ (I1 i))) kv2
+                                           Nothing_        -> T2 (T2 k v2) (-1)
+                                           Just_ (T2 i v1) -> T2 (T2 k (f k v1 v2)) i) kv2
 
       -- Knock out values from the first map which have already been merged
       -- with values from the second
-      keep        = permute const (A.fill (shape kv1) True_) (rm !) (fill (shape kv2) False_)
+      keep        = permute const
+                      (A.fill (shape kv1) True_)
+                      (\ix -> let i = rm ! ix in i < 0 ? (Nothing_, Just_ (I1 i)))
+                      (fill (shape kv2) False_)
       T2 kv1' sz  = compact keep kv1
    in
    if the sz == 0
