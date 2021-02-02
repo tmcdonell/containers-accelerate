@@ -319,19 +319,22 @@ unionWithKey
     -> Acc (HashMap k v)
     -> Acc (HashMap k v)
     -> Acc (HashMap k v)
-unionWithKey f hm1 hm2 = fromVector (kv1 ++ kv2)
-  where
-    -- Values from the second map which are present in the first
-    (kv2, i1) = unzip
-              $ A.map (\(T2 k v2) -> lookupWithIndex k hm1 & match \case
-                                       Nothing_        -> T2 (T2 k v2)          Nothing_
-                                       Just_ (T2 i v1) -> T2 (T2 k (f k v1 v2)) (Just_ (I1 i))) (assocs hm2)
+unionWithKey f hm1@(HashMap_ _ kv1) (HashMap_ tree2 kv2) = -- fromVector (kv1 ++ kv2)
+  let
+      -- Values from the second map which are present in the first
+      (kv2', rm)  = unzip
+                  $ A.map (\(T2 k v2) -> lookupWithIndex k hm1 & match \case
+                                           Nothing_        -> T2 (T2 k v2)          Nothing_
+                                           Just_ (T2 i v1) -> T2 (T2 k (f k v1 v2)) (Just_ (I1 i))) kv2
 
-    -- Knock out values from the first map which have already been merged
-    -- with values from the second
-    kv1       = afst
-              $ justs
-              $ permute const (A.map Just_ (assocs hm1)) (i1 !) (fill (shape (assocs hm2)) Nothing_)
+      -- Knock out values from the first map which have already been merged
+      -- with values from the second
+      keep        = permute const (A.fill (shape kv1) True_) (rm !) (fill (shape kv2) False_)
+      T2 kv1' sz  = compact keep kv1
+   in
+   if the sz == 0
+      then HashMap_ tree2 kv2'
+      else fromVector (kv1' ++ kv2')
 
 
 -- | Left-biased difference of two maps. Returns elements of the first map
@@ -380,18 +383,23 @@ differenceWithKey
     -> Acc (HashMap k a)
     -> Acc (HashMap k b)
     -> Acc (HashMap k a)
-differenceWithKey f as bs = HashMap_ tree kv
-  where
-    kv    = afst
-          $ justs
-          $ A.map (\(T2 k va) -> lookup k bs & match \case
-                                   Nothing_ -> Just_ (T2 k va)
-                                   Just_ vb -> f k va vb & match \case
-                                                 Just_ va' -> Just_ (T2 k va')
-                                                 Nothing_  -> Nothing_) (assocs as)
+differenceWithKey f (HashMap_ tree kv) bs =
+  let
+      -- Update (or remove) values from the first map
+      T2 kv' sz = justs
+                $ A.map (\(T2 k va) -> lookup k bs & match \case
+                                         Nothing_ -> Just_ (T2 k va)
+                                         Just_ vb -> f k va vb & match \case
+                                                       Just_ va' -> Just_ (T2 k va')
+                                                       Nothing_  -> Nothing_) kv
 
-    tree  = binary_radix_tree
-          $ A.map (bitcast . hash . fst) kv
+      -- The keys are still in sorted order, assuming 'filter' is stable
+      tree'     = binary_radix_tree
+                $ A.map (bitcast . hash . fst) kv
+   in
+   if the sz == unindex1 (shape kv)
+      then HashMap_ tree  kv'
+      else HashMap_ tree' kv'
 
 
 -- | Left-biased intersection of two maps. Returns the data in the first
@@ -428,20 +436,23 @@ intersectionWithKey
     -> Acc (HashMap k a)
     -> Acc (HashMap k b)
     -> Acc (HashMap k c)
-intersectionWithKey f as bs = HashMap_ tree kv
-  where
-    -- Values from second map which are present in the first
-    -- TODO: should we do the lookup into the smaller array or the larger?
-    kv    = afst
-          $ justs
-          $ A.map (\(T2 k v2) -> lookup k as & match \case
-                                   Nothing_ -> Nothing_
-                                   Just_ v1 -> Just_ (T2 k (f k v1 v2))) (assocs bs)
+intersectionWithKey f as (HashMap_ tree kv) =
+  let
+      -- Values from second map which are present in the first
+      -- TODO: should we do the lookup into the smaller array or the larger?
+      T2 kv' sz = justs
+                $ A.map (\(T2 k v2) -> lookup k as & match \case
+                                         Nothing_ -> Nothing_
+                                         Just_ v1 -> Just_ (T2 k (f k v1 v2))) kv
 
-    -- The (hashed) keys from the first step are still in sorted order,
-    -- assuming 'justs' (a.k.a. 'filter') is stable, so no need to sort.
-    tree  = binary_radix_tree
-          $ A.map (bitcast . hash . fst) kv
+      -- Assuming 'justs' (a.k.a. 'filter') is stable, the (hashed) keys from
+      -- the first step are still in sorted order.
+      tree'     = binary_radix_tree
+                $ A.map (bitcast . hash . fst) kv'
+   in
+   if the sz == unindex1 (shape kv)
+      then HashMap_ tree  kv'
+      else HashMap_ tree' kv'
 
 
 -- | /O(n)/ Transform the map by applying a function to every value
