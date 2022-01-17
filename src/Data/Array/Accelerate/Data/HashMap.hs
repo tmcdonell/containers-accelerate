@@ -100,6 +100,7 @@ lookup k hm = snd `fmap` lookupWithIndex k hm
 --
 -- @since 0.2.0.0@
 --
+infixl 9 !?
 (!?) :: (Eq k, Hashable k, Elt v) => Exp k -> Acc (HashMap k v) -> Exp (Maybe v)
 (!?) = lookup
 
