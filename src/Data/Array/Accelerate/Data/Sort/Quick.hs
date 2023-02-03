@@ -53,7 +53,7 @@ type State a =
   )
 
 step :: Elt a => (Exp a -> Exp a -> Exp Ordering) -> Acc (State a) -> Acc (State a)
-step cmp (T2 values headFlags) = (T2 values' headFlags')
+step cmp (T2 values headFlags) = T2 values' headFlags'
   where
     -- Per element, the pivot of the segment of that element
     -- For each segment, we just take the first element as pivot
@@ -66,17 +66,21 @@ step cmp (T2 values headFlags) = (T2 values' headFlags')
     startIndex = propagateSegmentHead headFlags (generate (shape values) unindex1)
 
     -- Compute the offsets to which the elements must be moved using a scan
-    indicesLarger, indicesSmaller :: Acc (Vector Int)
-    indicesLarger  = map (\x -> x - 1) $ postscanSegHead (+) headFlags $ map (? (1, 0)) isLarger
-    indicesSmaller = map (\x -> x - 1) $ postscanSegHead (+) headFlags $ map (? (0, 1)) isLarger
+    -- The array contains tuples. The first element is the offset among
+    -- the larger elements (ie the number of elements before this element,
+    -- which also belong to the larger-than segment), and the second element
+    -- is the offset among the smaller elements.
+    -- Since we use an inclusive scan, the indices are one too large (hence the name PlusOne)
+    indicesLargerSmallerPlusOne :: Acc (Vector (Int, Int))
+    indicesLargerSmallerPlusOne = postscanSegHead (\(T2 a b) (T2 c d) -> T2 (a + c) (b + d)) headFlags $ map (? (T2 1 0, T2 0 1)) isLarger
 
     -- Propagate the number of smaller elements to each segment
     -- This is needed as an offset for the larger elements
     countSmaller :: Acc (Vector Int)
-    countSmaller = map (+1) $ propagateSegmentLast headFlags indicesSmaller
+    countSmaller = propagateSegmentLast headFlags $ map snd indicesLargerSmallerPlusOne
 
     -- Compute the new indices of the elements
-    permutation = zipWith5 partitionPermuteIndex isLarger startIndex indicesSmaller indicesLarger countSmaller
+    permutation = zipWith4 partitionPermuteIndex isLarger startIndex indicesLargerSmallerPlusOne countSmaller
 
     -- Perform the permutation
     values' = scatter permutation (fill (shape values) undef) values
@@ -106,14 +110,14 @@ step cmp (T2 values headFlags) = (T2 values' headFlags')
 -- loop may terminate.
 --
 condition :: Elt a => Acc (State a) -> Acc (Scalar Bool)
-condition (T2 _ headFlags) = map not $ fold (&&) True_ headFlags
+condition (T2 _ headFlags) = any not headFlags
 
 -- Finds the new index of an element of the list, as the result of the
 -- partition
 --
-partitionPermuteIndex :: Exp Bool -> Exp Int -> Exp Int -> Exp Int -> Exp Int -> Exp Int
-partitionPermuteIndex isLarger start indexIfSmaller indexIfLarger countSmaller =
-  start + (isLarger ? (countSmaller + indexIfLarger, indexIfSmaller))
+partitionPermuteIndex :: Exp Bool -> Exp Int -> Exp (Int, Int) -> Exp Int -> Exp Int
+partitionPermuteIndex isLarger start (T2 indexIfLarger indexIfSmaller) countSmaller =
+  start + (isLarger ? (countSmaller + indexIfLarger - 1, indexIfSmaller - 1))
 
 -- Given head flags, propagates the value of the head to all elements in
 -- the segment
@@ -125,7 +129,7 @@ propagateSegmentHead
     -> Acc (Vector a)
 propagateSegmentHead headFlags values
   = map fst
-  $ postscanl f (T2 undef True_)
+  $ scanl1 f
   $ zip values headFlags
   where
     f left (T2 rightValue rightFlag) =
@@ -143,7 +147,7 @@ propagateSegmentLast
     -> Acc (Vector a)
 propagateSegmentLast headFlags values
   = map fst
-  $ postscanr f (T2 undef True_)
+  $ scanr1 f
   $ zip values
   $ tail headFlags
   where
@@ -162,7 +166,7 @@ postscanSegHead
     -> Acc (Vector a)
 postscanSegHead f headFlags values
   = map fst
-  $ postscanl g (T2 undef True_)
+  $ scanl1 g
   $ zip values headFlags
   where
     g (T2 leftValue leftFlag) (T2 rightValue rightFlag)
