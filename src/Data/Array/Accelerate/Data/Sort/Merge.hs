@@ -94,7 +94,15 @@ newIndex values cmp valueCount blockSize (I1 index) value = index + offset
     searchMinIndex  = otherBlockIndex * blockSize
     searchMaxIndex  = min valueCount $ (otherBlockIndex + 1) * blockSize
 
-    countOtherBlock = binarySearch values cmp value (not left) searchMinIndex searchMaxIndex
+    countOtherBlock' = binarySearch values cmp value (not left) searchMinIndex searchMaxIndex
+
+    -- If the result of binarySearch is negative and the search range is at the
+    -- end of the vector, then it sets the count to 0.  This check is necessary
+    -- because the binary search function assumes that 
+    --          initialMinIndex <= initialMaxIndex. 
+    -- Otherwise, it may give incorrect offsets, resulting in undefined
+    -- behavior.
+    countOtherBlock = countOtherBlock' < 0 && searchMaxIndex == valueCount ? (0, countOtherBlock')
 
     -- We should base the indices of the right block also on the left
     -- block, hence we must subtract blockSize
